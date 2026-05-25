@@ -48,3 +48,17 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 - エスカレーション基準と報告先
 - 交渉の優先順位（Tier 1〜3）
 - 修正案のフォーマット
+
+## Claudeプラグインのパッケージ
+
+カスタマイズしたスキルをzipファイルとしてプラグインをパッケージするには、プロジェクトルートで以下のコマンドを実行します。
+
+```sh
+zip -r legal-plugin.zip .claude-plugin skills .mcp.json
+```
+
+## Claudeプラグインの配布
+
+カスタマイズしたzipパッケージか、[Releases](https://github.com/contracts-inc/legal-plugin/releases)で配布するZipファイルを使用して組織にプラグインを配布します。
+
+Claude公式の[組織向けのclaude-coworkプラグインを管理する](https://support.claude.com/ja/articles/13837433-%E7%B5%84%E7%B9%94%E5%90%91%E3%81%91%E3%81%AEclaude-cowork%E3%83%97%E3%83%A9%E3%82%B0%E3%82%A4%E3%83%B3%E3%82%92%E7%AE%A1%E7%90%86%E3%81%99%E3%82%8B)サポートページを参考に `legal-plugin.zip` を組織に配布してください。

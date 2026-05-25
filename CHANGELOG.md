@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7] - 2026/05/25
+
+### Changed
+
+- GitHub公開リポジトリ（contracts-inc/legal-plugin）での配布に向け、単独リポジトリに移行。
+- README.mdを追加し、セットアップ手順・配布方法・カスタマイズガイドを整備。
+
 ## [1.0.6] - 2026/05/22
 
 ### Changed
