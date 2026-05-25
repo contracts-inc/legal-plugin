@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "e-gov": {
+      "type": "http",
+      "url": "https://e-gov.contracts-cloud.com/mcp"
+    },
+    "contracts-clm": {
+      "type": "http",
+      "url": "https://mcp.contracts-cloud.com/mcp"
+    }
+  }
+}

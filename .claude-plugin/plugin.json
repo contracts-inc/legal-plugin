@@ -1,0 +1,8 @@
+{
+  "name": "legal",
+  "version": "1.0.6",
+  "description": "ContractS CLMと連動して自社基準と法令に基づく契約書レビューを実施するスキル",
+  "author": {
+    "name": "ContractS"
+  }
+}
