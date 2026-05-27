@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.8] - 2026/05/27
+
+### Added
+
+- `references/comment-format.md` を新規作成。Wordコメント（吹き出し）挿入に特化したガイドライン（挿入位置のルール、含める情報、フォーマット例、禁止事項）を定義。
+
+### Changed
+
+- `SKILL.md` のステップ8を再構成。基本方針・変更履歴付き修正案の書き込み・禁止事項はSKILL.mdに残し、コメント挿入のフォーマットは `references/comment-format.md` を参照する構成に変更。
+
 ## [1.0.7] - 2026/05/25
 
 ### Changed
