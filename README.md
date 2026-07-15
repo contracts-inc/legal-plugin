@@ -31,6 +31,7 @@ v1.1.0から、法務担当者向けの `review-contract` に加えて、事業�
 | `clause-review` | ドラフト受領時 | 業種別プレイブック照合による赤黄緑判定＋レッドライン＋交渉トーク生成 |
 | `legal-handoff` | 法務依頼時 | 法務レビュー依頼パッケージ生成（論点4点セット＋e-Gov法令MCPによる実条文引用） |
 | `finance-impact` | 締結前 | 会計・税務インパクトの先読み（経理確認依頼シート） |
+| `approval-brief` | 稟議時 | 稟議サマリ自動生成（採算・最悪シナリオ・撤退条件の「経営指標への翻訳」） |
 
 ContractS CLM未接続の環境でも、`skills/_shared/sample_contracts/` の逸脱条項入りサンプル契約書（商社・製薬・人材の3業種）でそのまま動作を試せます。
 
@@ -68,6 +69,7 @@ ContractS CLM未接続の環境でも、`skills/_shared/sample_contracts/` の�
 │   │       └── playbook_staffing.md
 │   ├── legal-handoff/           # 法務依頼パッケージ（UC2）
 │   ├── finance-impact/          # 会計・税務論点の先読み（UC3）
+│   ├── approval-brief/          # 稟議サマリ（UC4）
 │   └── _shared/                 # 共有アセット（SSoT）
 │       ├── clm_rules.md         # CLM MCP共通ルール
 │       ├── industry_presets.md  # 業種プリセット
