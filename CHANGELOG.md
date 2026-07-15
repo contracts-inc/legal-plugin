@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0] - 2026/07/15
+
+### Added
+
+- 交渉担当者（事業部門）向けスキル第1弾 `clause-review`（UC1）を追加。業種別プレイブック照合による赤黄緑判定＋レッドライン＋交渉トーク・譲歩ライン生成。業種別プレイブック3本（商社・製薬・人材）を同梱。
+- `skills/_shared/` に共有アセット（SSoT）を追加。
+  - `industry_presets.md`：業種プリセット（trading/pharma/staffing）。業種はパラメータ化し、業種別のスキル複製はしない。
+  - `clm_rules.md`：ContractS CLM MCP共通ルール（タスクURL固定形式・pageSize=100・書き込みは承認後）。
+  - `sample_contracts/`：逸脱条項を仕込んだデモ用サンプル契約書3本＋仕込み一覧README（期待判定の突合表付き）。CLM未接続時はサンプルにフォールバックし、デモを止めない。
+- `RELEASING.md` を追加。「1スキル＝1PR＝1リリース＝1Xポスト」のリリース運用を明文化。
+
+### Changed
+
+- `review-contract` と `clause-review` の使い分けを明確化。`review-contract` は法務担当者向け・曖昧なレビュー依頼のデフォルト、`clause-review` は事業部門の交渉担当者向け（業種指定・交渉トーク文脈）としてトリガー文言の重複を解消。両SKILL.mdとREADMEに使い分け表を追加。
+- README.mdを再構成。「法務担当者向け」「交渉担当者向け」の2ペルソナでスキルを整理し、ディレクトリ構成・カスタマイズガイドを更新。
+
 ## [1.0.9] - 2026/07/09
 
 ### Changed
