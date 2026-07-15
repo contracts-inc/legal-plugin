@@ -1,6 +1,6 @@
 {
   "name": "legal",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "ContractS CLMと連動して、契約書レビュー・法務依頼・経理確認・稟議準備・締結後モニタリングを支援するスキル群",
   "author": {
     "name": "ContractS"
