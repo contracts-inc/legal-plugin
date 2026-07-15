@@ -24,7 +24,7 @@ v1.1.0から、法務担当者向けの `review-contract` に加えて、事業�
 
 ### 交渉担当者（事業部門）向け
 
-契約交渉の受領〜締結〜履行の各フェーズを支援するスキル群です（UC1〜UC5を順次リリース）。業種パラメータ（`trading`：商社／`pharma`：製薬／`staffing`：人材）で挙動が切り替わります。
+契約交渉の受領〜締結〜履行の各フェーズを支援する5スキルです。業種パラメータ（`trading`：商社／`pharma`：製薬／`staffing`：人材）で挙動が切り替わります。
 
 | スキル | フェーズ | 内容 |
 |---|---|---|
@@ -32,6 +32,7 @@ v1.1.0から、法務担当者向けの `review-contract` に加えて、事業�
 | `legal-handoff` | 法務依頼時 | 法務レビュー依頼パッケージ生成（論点4点セット＋e-Gov法令MCPによる実条文引用） |
 | `finance-impact` | 締結前 | 会計・税務インパクトの先読み（経理確認依頼シート） |
 | `approval-brief` | 稟議時 | 稟議サマリ自動生成（採算・最悪シナリオ・撤退条件の「経営指標への翻訳」） |
+| `obligation-monitor` | 締結後 | 期限・更新・義務履行の横断モニタリング（HTMLレポート） |
 
 ContractS CLM未接続の環境でも、`skills/_shared/sample_contracts/` の逸脱条項入りサンプル契約書（商社・製薬・人材の3業種）でそのまま動作を試せます。
 
@@ -70,6 +71,7 @@ ContractS CLM未接続の環境でも、`skills/_shared/sample_contracts/` の�
 │   ├── legal-handoff/           # 法務依頼パッケージ（UC2）
 │   ├── finance-impact/          # 会計・税務論点の先読み（UC3）
 │   ├── approval-brief/          # 稟議サマリ（UC4）
+│   ├── obligation-monitor/      # 期限・義務モニタリング（UC5）
 │   └── _shared/                 # 共有アセット（SSoT）
 │       ├── clm_rules.md         # CLM MCP共通ルール
 │       ├── industry_presets.md  # 業種プリセット
