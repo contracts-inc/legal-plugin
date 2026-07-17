@@ -9,7 +9,7 @@
   - `industry_presets.md`：業種プリセット（trading/pharma/staffing）。業種はパラメータ化し、業種別のスキル複製はしない。
   - `clm_rules.md`：ContractS CLM MCP共通ルール（タスクURL固定形式・pageSize=100・書き込みは承認後）。
   - `sample_contracts/`：逸脱条項を仕込んだデモ用サンプル契約書3本＋仕込み一覧README（期待判定の突合表付き）。CLM未接続時はサンプルにフォールバックし、デモを止めない。
-- `RELEASING.md` を追加。「1スキル＝1PR＝1リリース＝1Xポスト」のリリース運用を明文化。
+- `RELEASING.md` を追加。「1スキル＝1PR＝1リリース」のリリース運用を明文化。
 
 ### Changed
 
