@@ -1,32 +1,5 @@
 # Changelog
 
-## [2.0.0] - 2026/07/17
-
-### Added
-
-- `draft-document` スキルに「10. 生成後の後続フロー（任意・コネクタ接続時）」を追加。生成したドラフトのCLM登録 → レビュー依頼 → 原契約への関連契約紐付け（親: 原契約、子: 変更覚書）を提案できるフローを定義。スキル本体は製品非依存の記述とし、ContractS CLM の具体ツール名（`get_upload_url` / `create_document_from_uploaded_file` / `relate_contracts`）はカスタマイズ例として記載。
-- `references/document-types.md` に「発注書 / 注文書（受発注文書）」の類型を追加。発注書・注文請書の標準構成、基本契約引用の必須化、金額・納期等の推測禁止（`※要確認`）を定義。
-
-### Changed
-
-- `SKILL.md` の対象類型リストと説明文に発注書・注文書を追加。
-- README.md の `draft-document` 機能一覧に、対象文書類型と生成後の後続フローを追記。
-- `plugin.json` のバージョンを 2.0.0 に更新。
-
-## [1.1.0] - 2026/07/15
-
-### Added
-
-- `draft-document` スキルを新規追加。原契約や雛形を参照し、変更覚書を代表ユースケースとした法務文書ドラフト（.docx）を生成する。入力ソースの3択（① コネクタ取得 / ② ファイル添付 / ③ 直接入力）、原契約からの正確な引用と変更前後の対比、推測禁止・`※要確認` 明示・ドラフト注記のガードレールを定義。（refs #7116）
-- `skills/draft-document/references/` に `document-types.md`（対象文書類型と標準構成）、`input-sources.md`（入力ソース選択フロー）、`generation-rules.md`（生成アプローチとガードレール）、`amendment-format.md`（変更覚書の推奨フォーマットと文例）を追加。
-- `skills/draft-document/scripts/` に `fill_docx.py`（python-docx による雛形差し込み）、`make_sample_template.py`（汎用ダミー雛形の生成）を追加。
-- `skills/draft-document/assets/amendment-template.docx` に汎用ダミーの変更覚書雛形を追加。
-
-### Changed
-
-- `plugin.json` の説明文を、契約書レビューに加えて法務文書ドラフト生成を含む内容に更新。バージョンを 1.1.0 に更新。
-- README.md にドラフト生成スキルの概要・ディレクトリ構成・カスタマイズ手順・プライバシー/免責を追記。
-
 ## [1.0.9] - 2026/07/09
 
 ### Changed
