@@ -1,7 +1,7 @@
 {
   "name": "legal",
-  "version": "2.0.0",
-  "description": "ContractS CLMと連動して自社基準と法令に基づく契約書レビューを実施し、あわせて法務文書のドラフト生成を支援するスキル",
+  "version": "1.0.9",
+  "description": "ContractS CLMと連動して自社基準と法令に基づく契約書レビューを実施するスキル",
   "author": {
     "name": "ContractS"
   }
