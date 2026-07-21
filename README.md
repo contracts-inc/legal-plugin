@@ -20,7 +20,7 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 - レビュー指摘のWordコメント挿入
 - ContractS CLMとの双方向連携（タスク取得・ドキュメント登録）
 
-### draft-document
+### draft-contract
 
 法務文書ドラフト生成スキル。以下の機能を提供します。
 
@@ -44,7 +44,7 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 │   │   └── references/
 │   │       ├── playbook.md          # 交渉プレイブック（カスタマイズ可能）
 │   │       └── comment-format.md    # Wordコメント挿入ガイドライン
-│   └── draft-document/
+│   └── draft-contract/
 │       ├── SKILL.md                 # スキル定義（ドラフト生成手順）
 │       ├── references/
 │       │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索含む）
@@ -63,7 +63,7 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 
 (ヘルプサイトのURLを記載)
 
-### draft-document の依存関係
+### draft-contract の依存関係
 
 ドラフト差し込みスクリプトは python-docx を使用します。
 
@@ -84,9 +84,9 @@ pip install python-docx
 - 交渉の優先順位（Tier 1〜3）
 - 修正案のフォーマット
 
-### draft-document
+### draft-contract
 
-`skills/draft-document/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
+`skills/draft-contract/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
 
 - 入力ソースの取得フローと利用コネクタ、対象契約のベクトル検索（`input-sources.md`）
 - 生成アプローチの許容範囲・ガードレール・類型別の構成ヒント（`generation-rules.md`）
