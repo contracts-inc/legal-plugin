@@ -47,13 +47,12 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 │   └── draft-document/
 │       ├── SKILL.md                 # スキル定義（ドラフト生成手順）
 │       ├── references/
-│       │   ├── document-types.md    # 対象文書類型と標準構成
-│       │   ├── input-sources.md     # 入力ソース選択フロー
-│       │   ├── generation-rules.md  # 生成アプローチとガードレール
-│       │   └── amendment-format.md  # 変更覚書の推奨フォーマットと文例
+│       │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索含む）
+│       │   ├── generation-rules.md  # 生成アプローチ・ガードレール・類型別の構成ヒント
+│       │   ├── amendment-format.md  # 変更覚書の推奨フォーマットと文例
+│       │   └── review-criteria.md   # 専門家レビューの要否判定基準
 │       ├── scripts/
-│       │   ├── fill_docx.py         # python-docx による雛形差し込み
-│       │   └── make_sample_template.py  # 汎用ダミー雛形の生成
+│       │   └── fill_docx.py         # python-docx による雛形差し込み
 │       └── assets/
 │           └── amendment-template.docx  # 汎用ダミー雛形
 ├── CHANGELOG.md
@@ -89,11 +88,11 @@ pip install python-docx
 
 `skills/draft-document/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
 
-- 対象文書類型と標準構成（`document-types.md`）
-- 入力ソースの取得フローと利用コネクタ（`input-sources.md`）
-- 生成アプローチの許容範囲とガードレール（`generation-rules.md`）
+- 入力ソースの取得フローと利用コネクタ、対象契約のベクトル検索（`input-sources.md`）
+- 生成アプローチの許容範囲・ガードレール・類型別の構成ヒント（`generation-rules.md`）
 - 変更覚書の体裁・文例（`amendment-format.md`）
-- 汎用ダミー雛形（`assets/`。`scripts/make_sample_template.py` で再生成可能）
+- 専門家レビューの要否判定基準（`review-criteria.md`）
+- 汎用ダミー雛形（`assets/`）
 
 同梱する雛形・サンプルはすべて汎用ダミーです。特定顧客・組織固有の情報や機密雛形は同梱しないでください。
 
