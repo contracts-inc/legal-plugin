@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0] - 2026/07/17
+
+### Added
+
+- `draft-contract` スキルを新規追加（refs #7116）。原契約や雛形を参照し、変更覚書を代表ユースケースとした法務文書ドラフト（.docx）を生成する。入力ソースの3択（① コネクタ取得 / ② ファイル添付 / ③ 直接入力）、原契約からの正確な引用と変更前後の対比、推測禁止・`※要確認` 明示・ドラフト注記のガードレールを定義。
+- 対象類型: 変更覚書 / 各種覚書・合意書 / NDA / 業務委託等の定型契約 / 発注書・注文書 / 通知書・同意書。文書類型の判別はモデルの知識で行い、類型ごとの構成ヒントは `generation-rules.md` に集約。
+- 生成モードを「既存契約の一部変更（変更覚書等）」と「雛形からの新規作成」の2つに明確化。既存契約の変更時は、コネクタ接続時に対象契約を検索して特定する手順を定義（ContractS CLM 利用時は `search_references` で候補検索）。
+- 生成後の後続フロー（任意・コネクタ接続時）を定義: ドラフトのCLM登録（登録先フォルダはユーザーに確認）→ レビュー依頼 → 原契約への関連契約紐付け。スキル本体は製品非依存の記述とし、ContractS CLM の具体ツール名（`list_folder` / `get_upload_url` / `create_document_from_uploaded_file` / `relate_contracts` 等）はカスタマイズ例として分離。
+- `skills/draft-contract/references/` に `input-sources.md`（入力ソース選択フロー）、`generation-rules.md`（生成アプローチ・ガードレール・類型別の構成ヒント）、`review-criteria.md`（専門家レビューの要否判定基準）を追加。
+- 雛形（テンプレート）は利用者の保管場所（① コネクタ: Google Drive / Salesforce / CLM 等）から取得する設計とし、同梱の `assets/` はサンプル（例）と位置づけ（必要に応じて自社雛形を配置可）。`amendment-format.md` は廃止し、変更覚書で雛形が無い場合は同梱の `assets/amendment-template.docx` を差し込みベースに使う。
+- `skills/draft-contract/scripts/fill_docx.py`（python-docx による雛形差し込み）と、`skills/draft-contract/assets/amendment-template.docx`（汎用ダミーの変更覚書雛形）を追加。
+
+### Changed
+
+- `plugin.json` の説明文を、契約書レビューに加えて法務文書ドラフト生成を含む内容に更新。バージョンを 1.1.0 に更新。
+- README.md にドラフト生成スキルの概要・ディレクトリ構成・カスタマイズ手順・プライバシー/免責を追記。
+
 ## [1.0.9] - 2026/07/09
 
 ### Changed
