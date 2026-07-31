@@ -47,7 +47,6 @@ jobs:
   release:
     # 全プラットフォームのビルドが揃ってから、main のコミットだけをリリースする
     needs: build
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       # リリースの作成とアセットのアップロードに必要

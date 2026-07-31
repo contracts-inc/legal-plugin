@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
   "manifestVersion": "devPreview",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "id": "a127f8a3-3162-ad36-3783-7fefc647b696",
   "packageName": "com.contracts-cloud.agent-tools",
   "developer": {
