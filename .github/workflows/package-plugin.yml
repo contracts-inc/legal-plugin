@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -39,7 +39,86 @@ jobs:
           zip -r ../../${{ matrix.platform }}-skill-bundle.zip .
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}-skill-bundle
           path: ${{ matrix.platform }}-skill-bundle.zip
+
+  release:
+    # 全プラットフォームのビルドが揃ってから、main のコミットだけをリリースする
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      # リリースの作成とアセットのアップロードに必要
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Download ZIP artifacts
+        uses: actions/download-artifact@v7
+        with:
+          # 各 matrix ジョブがアップロードした ZIP を release-assets/ 直下へ集約する
+          pattern: '*-skill-bundle'
+          merge-multiple: true
+          path: release-assets
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          # リリース名・タグはプラグインマニフェストのバージョンを唯一の情報源にする
+          version=$(jq -r '.version // empty' src/.claude-plugin/plugin.json)
+          if [ -z "$version" ]; then
+            echo "src/.claude-plugin/plugin.json から version を取得できませんでした" >&2
+            exit 1
+          fi
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Check existing release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # バージョン未更新の push でワークフローを失敗させないため、既存リリースはスキップする
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::リリース ${TAG} は既に存在するため作成をスキップします"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          zips=(release-assets/*.zip)
+          if [ ! -e "${zips[0]}" ]; then
+            echo "リリースに添付する ZIP が見つかりません: release-assets/" >&2
+            exit 1
+          fi
+
+          # Package セクションには、リリースアセットとして添付する ZIP の
+          # ダウンロードリンクをプラットフォームごとに並べる
+          {
+            echo "## What's Changed"
+            echo
+            echo "詳細な変更内容は、[CHANGELOG](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)を参照ください。"
+            echo
+            echo "## Package"
+            echo
+            for zip in "${zips[@]}"; do
+              name=$(basename "$zip")
+              echo "- [${name}](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${name})"
+            done
+          } > release-notes.md
+
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes-file release-notes.md \
+            "${zips[@]}"
