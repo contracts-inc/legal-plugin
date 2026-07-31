@@ -1,0 +1,45 @@
+name: Build and Package Skills
+
+on:
+  push:
+    branches: [ main, matrix-build ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 対応するプラットフォームを配列で定義
+        platform: [chatgpt, claude, copilot]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install Jinja2
+
+      - name: Render Templates for ${{ matrix.platform }}
+        run: |
+          # src/ 配下（skills / .mcp.json / references / scripts / assets）を
+          # プラットフォーム別に dist/<platform>/ へ生成する
+          python scripts/build.py ${{ matrix.platform }}
+
+      - name: Create ZIP archive
+        run: |
+          cd dist/${{ matrix.platform }}
+          # プラットフォーム名の付いたZIPファイルを作成。
+          # `./*` はドットファイルを除外し .mcp.json / .claude-plugin を取りこぼすため `.` を使う
+          zip -r ../../${{ matrix.platform }}-skill-bundle.zip .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-skill-bundle
+          path: ${{ matrix.platform }}-skill-bundle.zip

@@ -33,30 +33,89 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 
 ## ディレクトリ構成
 
+配布物は `src/` を編集し、`scripts/build.py` でプラットフォーム別に `dist/<platform>/` へ生成します。
+
 ```
 .
-├── .claude-plugin/
-│   └── plugin.json                  # プラグインメタデータ
-├── .mcp.json                        # MCP設定
-├── skills/
-│   ├── review-contract/
-│   │   ├── SKILL.md                 # スキル定義（レビュー手順）
-│   │   └── references/
-│   │       ├── playbook.md          # 交渉プレイブック（カスタマイズ可能）
-│   │       └── comment-format.md    # Wordコメント挿入ガイドライン
-│   └── draft-contract/
-│       ├── SKILL.md                 # スキル定義（ドラフト生成手順）
-│       ├── references/
-│       │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索・雛形保管場所）
-│       │   ├── generation-rules.md  # 生成アプローチ・ガードレール・構成ヒント
-│       │   └── review-criteria.md   # 専門家レビューの要否判定基準
-│       ├── scripts/
-│       │   └── fill_docx.py         # python-docx による雛形差し込み
-│       └── assets/
-│           └── amendment-template.docx  # 変更覚書のサンプル雛形（例。自社雛形の配置も可）
+├── src/                                 # 配布物のソース（ここを編集する）
+│   ├── .claude-plugin/              # claudeビルド専用
+│   │   └── plugin.json              # プラグインメタデータ
+│   ├── .copilot-plugin/             # copilotビルド専用（中身をパッケージルートへ展開）
+│   │   ├── manifest.json            # Teamsアプリマニフェスト
+│   │   ├── color.png                # アイコン（カラー）
+│   │   └── outline.png              # アイコン（アウトライン）
+│   ├── .mcp.json                    # MCP設定（copilotビルドでは除外）
+│   └── skills/
+│       ├── review-contract/
+│       │   ├── SKILL.md             # スキル定義（レビュー手順）
+│       │   └── references/
+│       │       ├── playbook.md      # 交渉プレイブック（カスタマイズ可能）
+│       │       └── comment-format.md    # Wordコメント挿入ガイドライン
+│       └── draft-contract/
+│           ├── SKILL.md             # スキル定義（ドラフト生成手順）
+│           ├── references/
+│           │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索・雛形保管場所）
+│           │   ├── generation-rules.md  # 生成アプローチ・ガードレール・構成ヒント
+│           │   └── review-criteria.md   # 専門家レビューの要否判定基準
+│           ├── scripts/
+│           │   └── fill_docx.py     # python-docx による雛形差し込み
+│           └── assets/
+│               └── amendment-template.docx  # 変更覚書のサンプル雛形（例。自社雛形の配置も可）
+├── scripts/
+│   └── build.py                     # src/ からプラットフォーム別バンドルを生成
+├── .github/workflows/
+│   └── package-plugin.yml           # ビルドとZIPパッケージのCI
+├── dist/                            # ビルド出力（gitignore対象）
 ├── CHANGELOG.md
 └── README.md
 ```
+
+### プラットフォーム別ビルド
+
+`src/` 配下のMarkdownはJinja2テンプレートとして扱われ、`platform` 変数で分岐できます。
+
+```markdown
+{% if platform == 'copilot' %}
+（copilot向けの記述）
+{% else %}
+（その他のプラットフォーム向けの記述）
+{% endif %}
+```
+
+対応プラットフォームは `chatgpt` / `claude` / `copilot` です。
+
+### プラットフォーム専用ディレクトリ
+
+`src/` 直下のドット付きディレクトリは、対象プラットフォームのビルドにのみ含まれます。配置先は `build.py` の `PLATFORM_DIRS` で定義しています。
+
+| ソース | 対象 | バンドル内の配置先 |
+| --- | --- | --- |
+| `src/.claude-plugin/` | `claude` | `.claude-plugin/`（ディレクトリ名を保持） |
+| `src/.copilot-plugin/` | `copilot` | パッケージルート直下（ディレクトリ名を除去） |
+
+`copilot` で中身をルートに展開するのは、Teamsアプリマニフェストが `icons` や `agentSkills` をパッケージルート基準の相対パス（`color.png` / `./skills/review-contract`）で参照するためです。生成後のバンドルは次の構成になります。
+
+```
+dist/copilot/
+├── manifest.json
+├── color.png
+├── outline.png
+└── skills/
+    ├── review-contract/
+    └── draft-contract/
+```
+
+ルート直下へ展開するため、`.copilot-plugin/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
+
+### プラットフォーム別の除外ファイル
+
+`build.py` の `PLATFORM_EXCLUDED_FILES` で、特定プラットフォームのバンドルから除外するファイルを指定できます。
+
+| ソース | 除外対象 | 理由 |
+| --- | --- | --- |
+| `src/.mcp.json` | `copilot` | `manifest.json` の `agentConnectors` でMCPサーバーを宣言するため二重定義になる |
+
+`copilot` 向けにMCPサーバーを追加する場合は、`src/.mcp.json` ではなく `src/.copilot-plugin/manifest.json` の `agentConnectors` に定義してください。
 
 ## セットアップ
 
@@ -74,7 +133,7 @@ pip install python-docx
 
 ### review-contract
 
-`skills/review-contract/references/playbook.md` を編集することで、以下の項目を自社の基準に合わせて設定できます。
+`src/skills/review-contract/references/playbook.md` を編集することで、以下の項目を自社の基準に合わせて設定できます。
 
 - 各条項の自社基準（許容範囲の数値・条件）
 - 許容できない条件（RED判定の基準）
@@ -85,7 +144,7 @@ pip install python-docx
 
 ### draft-contract
 
-`skills/draft-contract/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
+`src/skills/draft-contract/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
 
 - 入力ソースの取得フローと利用コネクタ、対象契約のベクトル検索、雛形の保管場所（Google Drive / Salesforce / CLM 等）（`input-sources.md`）
 - 生成アプローチの許容範囲・ガードレール・類型別の構成ヒント（`generation-rules.md`）
@@ -101,11 +160,15 @@ pip install python-docx
 
 ## Claudeプラグインのパッケージ
 
-カスタマイズしたスキルをzipファイルとしてプラグインをパッケージするには、プロジェクトルートで以下のコマンドを実行します。
+カスタマイズしたスキルをzipファイルとしてパッケージするには、プロジェクトルートで以下のコマンドを実行します。ビルドにはJinja2が必要です。
 
 ```sh
-zip -r legal-plugin.zip .claude-plugin skills .mcp.json
+pip install Jinja2
+python scripts/build.py claude
+cd dist/claude && zip -r ../../claude-skill-bundle.zip .
 ```
+
+`zip` の対象は `./*` ではなく `.` を指定してください。`./*` はドットファイルにマッチしないため、`.claude-plugin/plugin.json` と `.mcp.json` が取りこぼされ、マニフェストのない不正なパッケージになります。
 
 ## Claudeプラグインの配布
 
