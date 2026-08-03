@@ -11,22 +11,29 @@ Markdown は Jinja2 テンプレートとして `platform` 変数を渡してレ
 `{% if platform == "claude" %}` のような条件分岐として表現する。
 
 プラットフォーム専用のマニフェストは PLATFORM_DIRS で制御する。
-  - src/.claude-plugin/  -> claude ビルドの .claude-plugin/ 配下
-  - src/.copilot-plugin/ -> copilot ビルドのパッケージルート直下
+  - src/.claude-bundle/  -> claude ビルドの .claude-plugin/ 配下
+  - src/.copilot-bundle/ -> copilot ビルドのパッケージルート直下
+  - src/.chatgpt-bundle/ -> chatgpt ビルドの .codex-plugin/ 配下
+
+マニフェストの version は CHANGELOG.md の最新エントリを唯一の情報源として
+ビルド時に埋め込む（VERSION_STAMPED_FILES）。src 側の値は参照しない。
+
+    python scripts/build.py --print-version  # CHANGELOG.md の最新バージョンを出力
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import shutil
 from pathlib import Path
 from typing import Iterator
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 DIST_DIR = PROJECT_ROOT / "dist"
+CHANGELOG_PATH = PROJECT_ROOT / "CHANGELOG.md"
 
 # .github/workflows/package-plugin.yml の matrix.platform と揃える
 SUPPORTED_PLATFORMS = ("chatgpt", "claude", "copilot")
@@ -39,15 +46,34 @@ EXCLUDED_NAMES = {".DS_Store", "Thumbs.db", "__pycache__", ".pytest_cache"}
 
 # 特定プラットフォーム専用の src 配下ディレクトリ（キーは src 直下のディレクトリ名）。
 # 対象プラットフォーム以外のビルドからは除外し、`dest` の位置に再配置する。
-#   - .claude-plugin: Claude Code はマニフェストを .claude-plugin/ 配下に置く仕様のため
-#                     ディレクトリ名を保ったまま同梱する。
-#   - .copilot-plugin: Copilot (Teams アプリ) のマニフェストは
+#   - .claude-bundle: Claude はマニフェストを .claude-plugin/ 配下に置く
+#   - .copilot-bundle: Copilot (Teams アプリ) のマニフェストは
 #                      アイコンや agentSkills をパッケージルート基準の相対パスで参照するため、
 #                      中身をパッケージルート直下に展開する（dest = ""）。
+#   - .chatgpt-bundle: ChatGPT はマニフェストを .codex-plugin/ 配下に置く
 PLATFORM_DIRS = {
-    ".claude-plugin": {"platform": "claude", "dest": ".claude-plugin"},
-    ".copilot-plugin": {"platform": "copilot", "dest": ""},
+    ".claude-bundle": {"platform": "claude", "dest": ".claude-plugin"},
+    ".copilot-bundle": {"platform": "copilot", "dest": ""},
+    ".chatgpt-bundle": {"platform": "chatgpt", "dest": ".codex-plugin"},
 }
+
+# version を CHANGELOG.md の最新バージョンで上書きする JSON（src からの相対パス）。
+# 各プラットフォームのマニフェストでバージョンが食い違うのを防ぐため、
+# src 側の値は編集不要（プレースホルダのままでよい）とし、ビルド時に必ず差し替える。
+VERSION_STAMPED_FILES = frozenset(
+    {
+        ".claude-bundle/plugin.json",
+        ".chatgpt-bundle/plugin.json",
+        ".copilot-bundle/manifest.json",
+    }
+)
+
+# CHANGELOG.md の見出し（例: `## [1.1.1] - 2026/07/24`）からバージョンを取り出す
+CHANGELOG_HEADING_PATTERN = re.compile(r"^##\s*\[\s*v?(?P<version>[^\]\s]+)\s*\]")
+
+# Copilot (Teams アプリ) の manifest.json は version に 3 桁の semver を要求するため、
+# CHANGELOG 側の表記もこれに揃える
+VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 
 # プラットフォームごとにバンドルから除外するファイル（src からの相対パス）。
 # copilot は manifest.json の agentConnectors で MCP サーバーを宣言するため、
@@ -59,9 +85,54 @@ PLATFORM_EXCLUDED_FILES = {
 # 各プラットフォームのバンドルに必須のファイル（バンドル内の相対パス）
 REQUIRED_FILES = {
     "claude": (".claude-plugin/plugin.json",),
-    # manifest.json が icons で参照するため PNG も必須
     "copilot": ("manifest.json", "color.png", "outline.png"),
+    "chatgpt": (".codex-plugin/plugin.json",),
 }
+
+
+def resolve_version(changelog_path: Path = CHANGELOG_PATH) -> str:
+    """CHANGELOG.md の先頭に現れるバージョン見出しからバージョン文字列を返す。
+
+    「最新版は常に一番上に追記する」という CHANGELOG の運用を前提に、
+    最初にマッチした見出しを最新バージョンとして扱う。
+    """
+    if not changelog_path.is_file():
+        raise SystemExit(f"CHANGELOG が見つかりません: {changelog_path}")
+
+    for line in changelog_path.read_text(encoding="utf-8").splitlines():
+        match = CHANGELOG_HEADING_PATTERN.match(line)
+        if match is None:
+            continue
+
+        version = match.group("version")
+        if not VERSION_PATTERN.match(version):
+            raise SystemExit(
+                f"CHANGELOG の最新バージョンが x.y.z 形式ではありません: {version}\n"
+                f"  {changelog_path} の見出しを `## [1.2.3] - YYYY/MM/DD` 形式にしてください。"
+            )
+        return version
+
+    raise SystemExit(
+        f"CHANGELOG からバージョンを取得できませんでした: {changelog_path}\n"
+        f"  `## [1.2.3] - YYYY/MM/DD` 形式の見出しが必要です。"
+    )
+
+
+def write_versioned_json(src_path: Path, dest_path: Path, version: str) -> None:
+    """JSON の version を差し替えて出力する。"""
+    try:
+        manifest = json.loads(src_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"JSON として解析できません: {src_path} ({error})") from error
+
+    if not isinstance(manifest, dict):
+        raise SystemExit(f"JSON のトップレベルがオブジェクトではありません: {src_path}")
+
+    # 既存キーの位置を保つため、キーが無い場合のみ末尾に追加される
+    manifest["version"] = version
+    dest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def iter_bundle_files(root: Path, platform: str) -> Iterator[tuple[Path, Path]]:
@@ -104,6 +175,10 @@ def build(platform: str) -> Path:
     if not SRC_DIR.is_dir():
         raise SystemExit(f"src ディレクトリが見つかりません: {SRC_DIR}")
 
+    # --print-version だけを使う CI ジョブに Jinja2 のインストールを強いないよう遅延 import する
+    from jinja2 import Environment, FileSystemLoader, StrictUndefined
+
+    version = resolve_version()
     out_dir = DIST_DIR / platform
     # 前回ビルドの残骸を持ち込まないよう、出力先を作り直す
     if out_dir.exists():
@@ -123,6 +198,7 @@ def build(platform: str) -> Path:
 
     rendered_count = 0
     copied_count = 0
+    stamped_count = 0
     written: dict[Path, Path] = {}
 
     for src_path, relative_dest in iter_bundle_files(SRC_DIR, platform):
@@ -139,7 +215,13 @@ def build(platform: str) -> Path:
         dest_path = out_dir / relative_dest
         dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if src_path.suffix.lower() in TEMPLATE_SUFFIXES:
+        stamped = source_rel.as_posix() in VERSION_STAMPED_FILES
+
+        if stamped:
+            # マニフェストのバージョンは CHANGELOG.md を唯一の情報源として埋め込む
+            write_versioned_json(src_path, dest_path, version)
+            stamped_count += 1
+        elif src_path.suffix.lower() in TEMPLATE_SUFFIXES:
             # テンプレートの読み込みは src からの相対パスで行う
             template = env.get_template(source_rel.as_posix())
             dest_path.write_text(
@@ -150,10 +232,11 @@ def build(platform: str) -> Path:
             shutil.copy2(src_path, dest_path)
             copied_count += 1
 
+        suffix = f" (version={version})" if stamped else ""
         if source_rel == relative_dest:
-            print(f"  {relative_dest.as_posix()}")
+            print(f"  {relative_dest.as_posix()}{suffix}")
         else:
-            print(f"  {source_rel.as_posix()} -> {relative_dest.as_posix()}")
+            print(f"  {source_rel.as_posix()} -> {relative_dest.as_posix()}{suffix}")
 
     # 必須ファイルの取りこぼしを検知する（例: claude のプラグインマニフェスト）
     for required in REQUIRED_FILES.get(platform, ()):
@@ -164,9 +247,26 @@ def build(platform: str) -> Path:
                 f"PLATFORM_DIRS の再配置設定を確認してください。"
             )
 
+    # マニフェストのリネーム等でバージョン埋め込みが静かに抜け落ちるのを防ぐ
+    expected_stamps = {
+        stamped
+        for stamped in VERSION_STAMPED_FILES
+        if PLATFORM_DIRS.get(Path(stamped).parts[0], {}).get("platform") == platform
+    }
+    missing_stamps = expected_stamps - {
+        source.as_posix() for source in written.values()
+    }
+    if missing_stamps:
+        raise SystemExit(
+            f"[{platform}] バージョンを埋め込むマニフェストが見つかりません: "
+            f"{', '.join(sorted(missing_stamps))}\n"
+            f"  VERSION_STAMPED_FILES のパスが src/ の構成と一致しているか確認してください。"
+        )
+
     print(
-        f"[{platform}] レンダリング {rendered_count} 件 / コピー {copied_count} 件"
-        f" -> {out_dir.relative_to(PROJECT_ROOT)}"
+        f"[{platform}] バージョン埋め込み {stamped_count} 件"
+        f" / レンダリング {rendered_count} 件 / コピー {copied_count} 件"
+        f" -> {out_dir.relative_to(PROJECT_ROOT)} (version={version})"
     )
     return out_dir
 
@@ -177,10 +277,24 @@ def main() -> None:
     )
     parser.add_argument(
         "platform",
+        nargs="?",
         choices=SUPPORTED_PLATFORMS,
         help="ビルド対象のプラットフォーム",
     )
+    parser.add_argument(
+        "--print-version",
+        action="store_true",
+        help="CHANGELOG.md の最新バージョンを出力して終了する（CI のタグ解決用）",
+    )
     args = parser.parse_args()
+
+    if args.print_version:
+        print(resolve_version())
+        return
+
+    if args.platform is None:
+        parser.error("platform を指定してください（--print-version 以外の場合は必須）")
+
     build(args.platform)
 
 

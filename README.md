@@ -38,9 +38,11 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 ```
 .
 ├── src/                                 # 配布物のソース（ここを編集する）
-│   ├── .claude-plugin/              # claudeビルド専用
+│   ├── .claude-bundle/              # claudeビルド専用
 │   │   └── plugin.json              # プラグインメタデータ
-│   ├── .copilot-plugin/             # copilotビルド専用（中身をパッケージルートへ展開）
+│   ├── .chatgpt-bundle/             # chatgptビルド専用
+│   │   └── plugin.json              # プラグインメタデータ
+│   ├── .copilot-bundle/             # copilotビルド専用（中身をパッケージルートへ展開）
 │   │   ├── manifest.json            # Teamsアプリマニフェスト
 │   │   ├── color.png                # アイコン（カラー）
 │   │   └── outline.png              # アイコン（アウトライン）
@@ -86,12 +88,13 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 
 ### プラットフォーム専用ディレクトリ
 
-`src/` 直下のドット付きディレクトリは、対象プラットフォームのビルドにのみ含まれます。配置先は `build.py` の `PLATFORM_DIRS` で定義しています。
+`src/` 直下の `*-bundle/` ディレクトリは、対象プラットフォームのビルドにのみ含まれます。配置先は `build.py` の `PLATFORM_DIRS` で定義しています。
 
 | ソース | 対象 | バンドル内の配置先 |
 | --- | --- | --- |
-| `src/.claude-plugin/` | `claude` | `.claude-plugin/`（ディレクトリ名を保持） |
-| `src/.copilot-plugin/` | `copilot` | パッケージルート直下（ディレクトリ名を除去） |
+| `src/.claude-bundle/` | `claude` | `.claude-plugin/` |
+| `src/.chatgpt-bundle/` | `chatgpt` | `.codex-plugin/` |
+| `src/.copilot-bundle/` | `copilot` | パッケージルート直下（ディレクトリ名を除去） |
 
 `copilot` で中身をルートに展開するのは、Teamsアプリマニフェストが `icons` や `agentSkills` をパッケージルート基準の相対パス（`color.png` / `./skills/review-contract`）で参照するためです。生成後のバンドルは次の構成になります。
 
@@ -105,7 +108,27 @@ dist/copilot/
     └── draft-contract/
 ```
 
-ルート直下へ展開するため、`.copilot-plugin/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
+ルート直下へ展開するため、`.copilot-bundle/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
+
+### バージョン管理
+
+バージョンの唯一の情報源は **`CHANGELOG.md` の最新見出し**です。`build.py` が最上部の `## [x.y.z] - YYYY/MM/DD` を読み取り、各マニフェストの `version` にビルド時へ埋め込みます。
+
+| 埋め込み先（ソース） | 対象 |
+| --- | --- |
+| `src/.claude-bundle/plugin.json` | `claude` |
+| `src/.chatgpt-bundle/plugin.json` | `chatgpt` |
+| `src/.copilot-bundle/manifest.json` | `copilot` |
+
+そのため、リリース時に編集するのは `CHANGELOG.md` だけです。`src/` 側マニフェストの `version` はビルド時に必ず上書きされるプレースホルダで、値を更新する必要はありません（更新しても無視されます）。
+
+CIのリリースタグも同じ値を使います。ローカルで確認する場合は次のコマンドを実行します。
+
+```sh
+python scripts/build.py --print-version
+```
+
+`CHANGELOG.md` の最新バージョンが `x.y.z` 形式でない場合、またはマニフェストが見つからない場合はビルドが失敗します（Copilotの `manifest.json` が3桁のsemverを要求するため）。
 
 ### プラットフォーム別の除外ファイル
 
@@ -115,7 +138,7 @@ dist/copilot/
 | --- | --- | --- |
 | `src/.mcp.json` | `copilot` | `manifest.json` の `agentConnectors` でMCPサーバーを宣言するため二重定義になる |
 
-`copilot` 向けにMCPサーバーを追加する場合は、`src/.mcp.json` ではなく `src/.copilot-plugin/manifest.json` の `agentConnectors` に定義してください。
+`copilot` 向けにMCPサーバーを追加する場合は、`src/.mcp.json` ではなく `src/.copilot-bundle/manifest.json` の `agentConnectors` に定義してください。
 
 ## セットアップ
 

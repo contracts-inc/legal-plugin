@@ -5,12 +5,19 @@ on:
     branches: [ main, matrix-build ]
   workflow_dispatch:
 
+env:
+  PYTHON_VERSION: '3.11'
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
+      # 1 プラットフォームの失敗で他のバンドルを取りこぼさないため、全件走らせる
+      fail-fast: false
       matrix:
-        # 対応するプラットフォームを配列で定義
+        # scripts/build.py の SUPPORTED_PLATFORMS と揃える
         platform: [chatgpt, claude, copilot]
 
     steps:
@@ -20,33 +27,41 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: pip install Jinja2
 
-      - name: Render Templates for ${{ matrix.platform }}
+      - name: Build bundle for ${{ matrix.platform }}
+        env:
+          PLATFORM: ${{ matrix.platform }}
         run: |
-          # src/ 配下（skills / .mcp.json / references / scripts / assets）を
-          # プラットフォーム別に dist/<platform>/ へ生成する
-          python scripts/build.py ${{ matrix.platform }}
+          # src/ 配下（skills / .mcp.json / プラットフォーム別 *-bundle/）を
+          # dist/<platform>/ へ生成する。
+          # マニフェストの version は CHANGELOG.md の最新版が埋め込まれる。
+          python scripts/build.py "$PLATFORM"
 
       - name: Create ZIP archive
+        env:
+          PLATFORM: ${{ matrix.platform }}
         run: |
-          cd dist/${{ matrix.platform }}
-          # プラットフォーム名の付いたZIPファイルを作成。
-          # `./*` はドットファイルを除外し .mcp.json / .claude-plugin を取りこぼすため `.` を使う
-          zip -r ../../${{ matrix.platform }}-skill-bundle.zip .
+          # ZIP はリポジトリルートに <platform>-skill-bundle.zip として作る
+          # `./*` はドットファイルを除外し .mcp.json / .claude-plugin / .codex-plugin を
+          # 取りこぼすため、対象には `.` を使う
+          (cd "dist/${PLATFORM}" && zip -r "${GITHUB_WORKSPACE}/${PLATFORM}-skill-bundle.zip" .)
+          unzip -l "${PLATFORM}-skill-bundle.zip"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}-skill-bundle
           path: ${{ matrix.platform }}-skill-bundle.zip
+          if-no-files-found: error
 
   release:
     # 全プラットフォームのビルドが揃ってから、main のコミットだけをリリースする
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       # リリースの作成とアセットのアップロードに必要
@@ -55,6 +70,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download ZIP artifacts
         uses: actions/download-artifact@v7
@@ -67,13 +87,16 @@ jobs:
       - name: Resolve release tag
         id: tag
         run: |
-          # リリース名・タグはプラグインマニフェストのバージョンを唯一の情報源にする
-          version=$(jq -r '.version // empty' src/.claude-plugin/plugin.json)
+          # リリース名・タグは CHANGELOG.md の最新バージョンを唯一の情報源にする。
+          # 各マニフェストの version もビルド時に同じ値が埋め込まれる。
+          version=$(python scripts/build.py --print-version)
           if [ -z "$version" ]; then
-            echo "src/.claude-plugin/plugin.json から version を取得できませんでした" >&2
+            echo "CHANGELOG.md から version を取得できませんでした" >&2
             exit 1
           fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "::notice::リリース対象バージョン: v${version}"
 
       - name: Check existing release
         id: check

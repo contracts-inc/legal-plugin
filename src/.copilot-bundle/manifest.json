@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
   "manifestVersion": "devPreview",
-  "version": "1.1.2",
+  "version": "",
   "id": "a127f8a3-3162-ad36-3783-7fefc647b696",
   "packageName": "com.contracts-cloud.agent-tools",
   "developer": {
@@ -12,11 +12,11 @@
   },
   "name": {
     "short": "ContractS CLM",
-    "full": "ContractS CLM Legal Tools for Copilot Cowork"
+    "full": "ContractS CLM Plugin for Copilot Cowork"
   },
   "description": {
-    "short": "ContractS CLMと連携して契約プロセスをサポートする",
-    "full": "契約書のドラフト・レビュー、関連契約の参照や交渉経緯の追跡などContractS CLMの契約インテリジェンスと接続して契約プロセスに関わる様々な実務をサポートします。"
+    "short": "Manage contract and legal process.",
+    "full": "It integrates with ContractS CLM’s contract intelligence to provide comprehensive support for the contract process."
   },
   "icons": {
     "color": "color.png",
