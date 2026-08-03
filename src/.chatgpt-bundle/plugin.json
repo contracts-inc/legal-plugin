@@ -12,7 +12,7 @@
     "longDescription": "It integrates with ContractS CLM’s contract intelligence to provide comprehensive support for the contract process.",
     "developerName": "ContractS Inc.",
     "category": "productivity",
-    "capabilities": ["mcp", "skills"]
+    "capabilities": []
   },
   "skills": "skills",
   "mcpServers":  ".mcp.json"

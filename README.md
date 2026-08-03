@@ -193,6 +193,37 @@ cd dist/claude && zip -r ../../claude-skill-bundle.zip .
 
 `zip` の対象は `./*` ではなく `.` を指定してください。`./*` はドットファイルにマッチしないため、`.claude-plugin/plugin.json` と `.mcp.json` が取りこぼされ、マニフェストのない不正なパッケージになります。
 
+### 配布ZIPの構成要件
+
+インストーラは **アーカイブ直下** のマニフェストを見てプラグインかどうかを判定します。次のエラーはこの構成が崩れている場合に出ます。
+
+```
+Plugin archive must contain .codex-plugin/plugin.json, .agent-plugin/plugin.json,
+.claude-plugin/plugin.json, or plugin content such as skills/*/SKILL.md, .mcp.json, or .app.json
+```
+
+よくある原因は次の2つです。
+
+1. **二重ZIP** — GitHub Actionsのアーティファクトはそれ自体がZIPです。ビルド済みZIPをアーティファクトにすると、ダウンロード時に「ZIPの中にZIP」になり拒否されます。CIではバンドルの中身をアーティファクトにしているため、ダウンロードしたZIPをそのままアップロードできます
+2. **余計なトップレベルディレクトリ** — 親ディレクトリからZIPを作ると `my-plugin/` のような階層で包まれ、マニフェストが直下に来ません
+
+構成は次のコマンドで検証できます（二重ZIP・余計な階層・必須ファイルの欠落を検出）。
+
+```sh
+python scripts/build.py claude --verify-archive claude-skill-bundle.zip
+```
+
+CIのリリースジョブでもZIP作成後に同じ検証を実行します。
+
+### CIのビルド成果物
+
+`package-plugin.yml` は2種類の入手経路を用意しています。どちらもアーカイブ直下がプラグインルートになっており、そのままインストーラにアップロードできます。
+
+| 入手経路 | 内容 |
+| --- | --- |
+| Actionsのアーティファクト（`<platform>-skill-bundle`） | ダウンロードすると `<platform>-skill-bundle.zip` が得られ、その直下がバンドル |
+| Releasesのアセット（`<platform>-skill-bundle.zip`） | `main` へのpush時に、`CHANGELOG.md` の最新バージョンをタグとして作成 |
+
 ## Claudeプラグインの配布
 
 カスタマイズしたzipパッケージか、[Releases](https://github.com/contracts-inc/legal-plugin/releases)で配布するZipファイルを使用して組織にプラグインを配布します。

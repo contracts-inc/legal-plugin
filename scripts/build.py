@@ -19,6 +19,11 @@ Markdown は Jinja2 テンプレートとして `platform` 変数を渡してレ
 ビルド時に埋め込む（VERSION_STAMPED_FILES）。src 側の値は参照しない。
 
     python scripts/build.py --print-version  # CHANGELOG.md の最新バージョンを出力
+
+配布 ZIP は「アーカイブ直下がプラグインルート」でなければインストーラに拒否される。
+その検証は --verify-archive で行う。
+
+    python scripts/build.py chatgpt --verify-archive chatgpt-skill-bundle.zip
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ import argparse
 import json
 import re
 import shutil
+import zipfile
 from pathlib import Path
 from typing import Iterator
 
@@ -82,7 +88,8 @@ PLATFORM_EXCLUDED_FILES = {
     "copilot": {".mcp.json"},
 }
 
-# 各プラットフォームのバンドルに必須のファイル（バンドル内の相対パス）
+# 各プラットフォームのバンドルに必須のファイル（バンドル内の相対パス）。
+# アーカイブ直下にこれらが並んでいることがインストーラの受け入れ条件になる。
 REQUIRED_FILES = {
     "claude": (".claude-plugin/plugin.json",),
     "copilot": ("manifest.json", "color.png", "outline.png"),
@@ -132,6 +139,69 @@ def write_versioned_json(src_path: Path, dest_path: Path, version: str) -> None:
     manifest["version"] = version
     dest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
+def verify_archive(platform: str, archive_path: Path) -> None:
+    """配布 ZIP の直下がプラグインルートになっているか検証する。
+
+    インストーラは アーカイブ直下の `.codex-plugin/plugin.json` などを見て
+    プラグインかどうかを判定するため、以下は受け付けられない。
+      - ZIP の中に ZIP が入っている（GitHub Actions のアーティファクトを
+        そのままダウンロードすると起きる）
+      - 余計なトップレベルディレクトリで包まれている
+    """
+    if not archive_path.is_file():
+        raise SystemExit(f"検証対象の ZIP が見つかりません: {archive_path}")
+
+    with zipfile.ZipFile(archive_path) as archive:
+        names = [name for name in archive.namelist() if not name.endswith("/")]
+
+    if not names:
+        raise SystemExit(f"[{platform}] ZIP が空です: {archive_path}")
+
+    problems: list[str] = []
+
+    # zip -r で `./` プレフィックスが付くとパス判定に失敗しうるため正規化して比較する
+    normalized = {name[2:] if name.startswith("./") else name for name in names}
+
+    missing = [
+        required
+        for required in REQUIRED_FILES.get(platform, ())
+        if required not in normalized
+    ]
+    if missing:
+        problems.append(
+            f"アーカイブ直下に必須ファイルがありません: {', '.join(missing)}"
+        )
+
+    nested_zips = sorted(
+        name for name in normalized if name.lower().endswith(".zip")
+    )
+    if nested_zips:
+        problems.append(
+            f"ZIP の中に ZIP が入っています（二重 ZIP）: {', '.join(nested_zips)}\n"
+            f"    GitHub Actions のアーティファクトをダウンロードしたものではなく、"
+            f"バンドル本体の ZIP を使ってください。"
+        )
+
+    # 全ファイルが単一ディレクトリ配下にある場合は、余計な階層で包まれている
+    top_levels = {Path(name).parts[0] for name in normalized}
+    if len(top_levels) == 1 and not any(
+        Path(name).parent == Path(".") for name in normalized
+    ):
+        problems.append(
+            f"余計なトップレベルディレクトリで包まれています: {top_levels.pop()}/\n"
+            f"    ZIP はバンドルディレクトリの中で `zip -r <出力> .` として作成してください。"
+        )
+
+    if problems:
+        detail = "\n".join(f"  - {problem}" for problem in problems)
+        raise SystemExit(f"[{platform}] ZIP の構成が不正です: {archive_path}\n{detail}")
+
+    print(
+        f"[{platform}] ZIP 構成 OK: {archive_path} "
+        f"（{len(names)} ファイル / 必須ファイルはアーカイブ直下）"
     )
 
 
@@ -286,6 +356,12 @@ def main() -> None:
         action="store_true",
         help="CHANGELOG.md の最新バージョンを出力して終了する（CI のタグ解決用）",
     )
+    parser.add_argument(
+        "--verify-archive",
+        metavar="ZIP",
+        type=Path,
+        help="ビルドせず、既存の配布 ZIP の構成だけを検証する",
+    )
     args = parser.parse_args()
 
     if args.print_version:
@@ -294,6 +370,10 @@ def main() -> None:
 
     if args.platform is None:
         parser.error("platform を指定してください（--print-version 以外の場合は必須）")
+
+    if args.verify_archive is not None:
+        verify_archive(args.platform, args.verify_archive)
+        return
 
     build(args.platform)
 

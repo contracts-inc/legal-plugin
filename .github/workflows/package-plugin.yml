@@ -41,21 +41,17 @@ jobs:
           # マニフェストの version は CHANGELOG.md の最新版が埋め込まれる。
           python scripts/build.py "$PLATFORM"
 
-      - name: Create ZIP archive
-        env:
-          PLATFORM: ${{ matrix.platform }}
-        run: |
-          # ZIP はリポジトリルートに <platform>-skill-bundle.zip として作る
-          # `./*` はドットファイルを除外し .mcp.json / .claude-plugin / .codex-plugin を
-          # 取りこぼすため、対象には `.` を使う
-          (cd "dist/${PLATFORM}" && zip -r "${GITHUB_WORKSPACE}/${PLATFORM}-skill-bundle.zip" .)
-          unzip -l "${PLATFORM}-skill-bundle.zip"
-
-      - name: Upload Artifact
+      # バンドルの中身をそのままアーティファクトとして上げる。
+      # ここで作成済みの ZIP をアップロードすると、アーティファクト自体が ZIP のため
+      # ダウンロード時に「ZIP の中に ZIP」となり、インストーラが
+      # .codex-plugin/plugin.json 等を見つけられず拒否される。
+      - name: Upload bundle artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.platform }}-skill-bundle
-          path: ${{ matrix.platform }}-skill-bundle.zip
+          path: dist/${{ matrix.platform }}
+          # 既定では除外される .codex-plugin / .claude-plugin / .mcp.json を含める
+          include-hidden-files: true
           if-no-files-found: error
 
   release:
@@ -76,13 +72,35 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Download ZIP artifacts
+      - name: Download bundle artifacts
         uses: actions/download-artifact@v7
         with:
-          # 各 matrix ジョブがアップロードした ZIP を release-assets/ 直下へ集約する
+          # merge-multiple を付けないことで bundles/<platform>-skill-bundle/ に展開される
           pattern: '*-skill-bundle'
-          merge-multiple: true
-          path: release-assets
+          path: bundles
+
+      - name: Create release ZIP archives
+        run: |
+          mkdir -p release-assets
+          shopt -s nullglob
+          dirs=(bundles/*-skill-bundle)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "バンドルのアーティファクトが見つかりません: bundles/" >&2
+            exit 1
+          fi
+
+          for dir in "${dirs[@]}"; do
+            name=$(basename "$dir")
+            platform=${name%-skill-bundle}
+            # バンドルディレクトリの中で `.` を対象に zip する。
+            # `./*` はドットファイルにマッチせず .codex-plugin / .claude-plugin /
+            # .mcp.json を取りこぼすため使わない。
+            (cd "$dir" && zip -qr "${GITHUB_WORKSPACE}/release-assets/${name}.zip" .)
+            # アーカイブ直下がプラグインルートになっているか（二重 ZIP・余計な階層が
+            # 無いか）を検証する。ここが崩れるとインストーラに拒否される。
+            python scripts/build.py "$platform" \
+              --verify-archive "release-assets/${name}.zip"
+          done
 
       - name: Resolve release tag
         id: tag
