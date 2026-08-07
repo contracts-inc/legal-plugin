@@ -95,7 +95,7 @@ description: 組織の交渉プレイブックに照らし合わせて契約書�
 {% if platform == 'copilot' %}
 1. **アップロードURLと変更差分のサマリーを提示:**:
   * MCPの制限でファイルを直接アップロードする事ができないため、プロダクトページからのアップロードを促す
-  * 提示するURL: https://development.clm.dev.contracts-cloud.com/ws/documents/{document_id}
+  * 提示するURL: https://clm.contracts-cloud.com/ws/documents/{document_id}
     * {document_id}プレースフォルダは当該文書のIDで置き換える
   * 必ずURLをハイパーリンクで表示すること
   * レビュー前の文書からの変更要点のサマリーをテキストで提示する（表形式を使用しない）
@@ -114,7 +114,7 @@ description: 組織の交渉プレイブックに照らし合わせて契約書�
 {% if platform == 'copilot' %}
 1. **ドキュメントの新規作成URLを提示**:
   * MCPの制限でファイルを直接アップロードする事ができないため、プロダクトページからのアップロードを促す
-  * 提示するURL: https://development.clm.dev.contracts-cloud.com/ws/dashboard
+  * 提示するURL: https://clm.contracts-cloud.com/ws/dashboard
   * 必ずURLをハイパーリンクで表示すること
 {% else %}
 1. **ドキュメントの新規作成:** 「ContractS CLM」MCPの`create_document_from_uploaded_file`ツールを使用して、レビュー結果のdocxファイルを初版ドキュメントとしてアップロードします。
