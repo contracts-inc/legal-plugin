@@ -1,0 +1,164 @@
+name: Build and Package Skills
+
+on:
+  push:
+    branches: [ main, matrix-build ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      # 1 プラットフォームの失敗で他のバンドルを取りこぼさないため、全件走らせる
+      fail-fast: false
+      matrix:
+        # scripts/build.py の SUPPORTED_PLATFORMS と揃える
+        platform: [chatgpt, claude, copilot]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install Jinja2
+
+      - name: Build bundle for ${{ matrix.platform }}
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          # src/ 配下（skills / .mcp.json / プラットフォーム別 *-bundle/）を
+          # dist/<platform>/ へ生成する。
+          # マニフェストの version は CHANGELOG.md の最新版が埋め込まれる。
+          python scripts/build.py "$PLATFORM"
+
+      # バンドルの中身をそのままアーティファクトとして上げる。
+      # ここで作成済みの ZIP をアップロードすると、アーティファクト自体が ZIP のため
+      # ダウンロード時に「ZIP の中に ZIP」となり、インストーラが
+      # .codex-plugin/plugin.json 等を見つけられず拒否される。
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.platform }}-skill-bundle
+          path: dist/${{ matrix.platform }}
+          # 既定では除外される .codex-plugin / .claude-plugin / .mcp.json を含める
+          include-hidden-files: true
+          if-no-files-found: error
+
+  release:
+    # 全プラットフォームのビルドが揃ってから、main のコミットだけをリリースする
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      # リリースの作成とアセットのアップロードに必要
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download bundle artifacts
+        uses: actions/download-artifact@v7
+        with:
+          # merge-multiple を付けないことで bundles/<platform>-skill-bundle/ に展開される
+          pattern: '*-skill-bundle'
+          path: bundles
+
+      - name: Create release ZIP archives
+        run: |
+          mkdir -p release-assets
+          shopt -s nullglob
+          dirs=(bundles/*-skill-bundle)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "バンドルのアーティファクトが見つかりません: bundles/" >&2
+            exit 1
+          fi
+
+          for dir in "${dirs[@]}"; do
+            name=$(basename "$dir")
+            platform=${name%-skill-bundle}
+            # バンドルディレクトリの中で `.` を対象に zip する。
+            # `./*` はドットファイルにマッチせず .codex-plugin / .claude-plugin /
+            # .mcp.json を取りこぼすため使わない。
+            (cd "$dir" && zip -qr "${GITHUB_WORKSPACE}/release-assets/${name}.zip" .)
+            # アーカイブ直下がプラグインルートになっているか（二重 ZIP・余計な階層が
+            # 無いか）を検証する。ここが崩れるとインストーラに拒否される。
+            python scripts/build.py "$platform" \
+              --verify-archive "release-assets/${name}.zip"
+          done
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          # リリース名・タグは CHANGELOG.md の最新バージョンを唯一の情報源にする。
+          # 各マニフェストの version もビルド時に同じ値が埋め込まれる。
+          version=$(python scripts/build.py --print-version)
+          if [ -z "$version" ]; then
+            echo "CHANGELOG.md から version を取得できませんでした" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "::notice::リリース対象バージョン: v${version}"
+
+      - name: Check existing release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # バージョン未更新の push でワークフローを失敗させないため、既存リリースはスキップする
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::リリース ${TAG} は既に存在するため作成をスキップします"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          zips=(release-assets/*.zip)
+          if [ ! -e "${zips[0]}" ]; then
+            echo "リリースに添付する ZIP が見つかりません: release-assets/" >&2
+            exit 1
+          fi
+
+          # Package セクションには、リリースアセットとして添付する ZIP の
+          # ダウンロードリンクをプラットフォームごとに並べる
+          {
+            echo "## What's Changed"
+            echo
+            echo "詳細な変更内容は、[CHANGELOG](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)を参照ください。"
+            echo
+            echo "## Package"
+            echo
+            for zip in "${zips[@]}"; do
+              name=$(basename "$zip")
+              echo "- [${name}](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${name})"
+            done
+          } > release-notes.md
+
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes-file release-notes.md \
+            "${zips[@]}"

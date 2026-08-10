@@ -33,30 +33,112 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 
 ## ディレクトリ構成
 
+配布物は `src/` を編集し、`scripts/build.py` でプラットフォーム別に `dist/<platform>/` へ生成します。
+
 ```
 .
-├── .claude-plugin/
-│   └── plugin.json                  # プラグインメタデータ
-├── .mcp.json                        # MCP設定
-├── skills/
-│   ├── review-contract/
-│   │   ├── SKILL.md                 # スキル定義（レビュー手順）
-│   │   └── references/
-│   │       ├── playbook.md          # 交渉プレイブック（カスタマイズ可能）
-│   │       └── comment-format.md    # Wordコメント挿入ガイドライン
-│   └── draft-contract/
-│       ├── SKILL.md                 # スキル定義（ドラフト生成手順）
-│       ├── references/
-│       │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索・雛形保管場所）
-│       │   ├── generation-rules.md  # 生成アプローチ・ガードレール・構成ヒント
-│       │   └── review-criteria.md   # 専門家レビューの要否判定基準
-│       ├── scripts/
-│       │   └── fill_docx.py         # python-docx による雛形差し込み
-│       └── assets/
-│           └── amendment-template.docx  # 変更覚書のサンプル雛形（例。自社雛形の配置も可）
+├── src/                                 # 配布物のソース（ここを編集する）
+│   ├── .claude-bundle/              # claudeビルド専用
+│   │   └── plugin.json              # プラグインメタデータ
+│   ├── .chatgpt-bundle/             # chatgptビルド専用
+│   │   └── plugin.json              # プラグインメタデータ
+│   ├── .copilot-bundle/             # copilotビルド専用（中身をパッケージルートへ展開）
+│   │   ├── manifest.json            # Teamsアプリマニフェスト
+│   │   ├── color.png                # アイコン（カラー）
+│   │   └── outline.png              # アイコン（アウトライン）
+│   ├── .mcp.json                    # MCP設定（copilotビルドでは除外）
+│   └── skills/
+│       ├── review-contract/
+│       │   ├── SKILL.md             # スキル定義（レビュー手順）
+│       │   └── references/
+│       │       ├── playbook.md      # 交渉プレイブック（カスタマイズ可能）
+│       │       └── comment-format.md    # Wordコメント挿入ガイドライン
+│       └── draft-contract/
+│           ├── SKILL.md             # スキル定義（ドラフト生成手順）
+│           ├── references/
+│           │   ├── input-sources.md     # 入力ソース選択フロー（ベクトル検索・雛形保管場所）
+│           │   ├── generation-rules.md  # 生成アプローチ・ガードレール・構成ヒント
+│           │   └── review-criteria.md   # 専門家レビューの要否判定基準
+│           ├── scripts/
+│           │   └── fill_docx.py     # python-docx による雛形差し込み
+│           └── assets/
+│               └── amendment-template.docx  # 変更覚書のサンプル雛形（例。自社雛形の配置も可）
+├── scripts/
+│   └── build.py                     # src/ からプラットフォーム別バンドルを生成
+├── .github/workflows/
+│   └── package-plugin.yml           # ビルドとZIPパッケージのCI
+├── dist/                            # ビルド出力（gitignore対象）
 ├── CHANGELOG.md
 └── README.md
 ```
+
+### プラットフォーム別ビルド
+
+`src/` 配下のMarkdownはJinja2テンプレートとして扱われ、`platform` 変数で分岐できます。
+
+```markdown
+{% if platform == 'copilot' %}
+（copilot向けの記述）
+{% else %}
+（その他のプラットフォーム向けの記述）
+{% endif %}
+```
+
+対応プラットフォームは `chatgpt` / `claude` / `copilot` です。
+
+### プラットフォーム専用ディレクトリ
+
+`src/` 直下の `*-bundle/` ディレクトリは、対象プラットフォームのビルドにのみ含まれます。配置先は `build.py` の `PLATFORM_DIRS` で定義しています。
+
+| ソース | 対象 | バンドル内の配置先 |
+| --- | --- | --- |
+| `src/.claude-bundle/` | `claude` | `.claude-plugin/` |
+| `src/.chatgpt-bundle/` | `chatgpt` | `.codex-plugin/` |
+| `src/.copilot-bundle/` | `copilot` | パッケージルート直下（ディレクトリ名を除去） |
+
+`copilot` で中身をルートに展開するのは、Teamsアプリマニフェストが `icons` や `agentSkills` をパッケージルート基準の相対パス（`color.png` / `./skills/review-contract`）で参照するためです。生成後のバンドルは次の構成になります。
+
+```
+dist/copilot/
+├── manifest.json
+├── color.png
+├── outline.png
+└── skills/
+    ├── review-contract/
+    └── draft-contract/
+```
+
+ルート直下へ展開するため、`.copilot-bundle/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
+
+### バージョン管理
+
+バージョンの唯一の情報源は **`CHANGELOG.md` の最新見出し**です。`build.py` が最上部の `## [x.y.z] - YYYY/MM/DD` を読み取り、各マニフェストの `version` にビルド時へ埋め込みます。
+
+| 埋め込み先（ソース） | 対象 |
+| --- | --- |
+| `src/.claude-bundle/plugin.json` | `claude` |
+| `src/.chatgpt-bundle/plugin.json` | `chatgpt` |
+| `src/.copilot-bundle/manifest.json` | `copilot` |
+
+そのため、リリース時に編集するのは `CHANGELOG.md` だけです。`src/` 側マニフェストの `version` はビルド時に必ず上書きされるプレースホルダで、値を更新する必要はありません（更新しても無視されます）。
+
+CIのリリースタグも同じ値を使います。ローカルで確認する場合は次のコマンドを実行します。
+
+```sh
+python scripts/build.py --print-version
+```
+
+`CHANGELOG.md` の最新バージョンが `x.y.z` 形式でない場合、またはマニフェストが見つからない場合はビルドが失敗します（Copilotの `manifest.json` が3桁のsemverを要求するため）。
+
+### プラットフォーム別の除外ファイル
+
+`build.py` の `PLATFORM_EXCLUDED_FILES` で、特定プラットフォームのバンドルから除外するファイルを指定できます。
+
+| ソース | 除外対象 | 理由 |
+| --- | --- | --- |
+| `src/.mcp.json` | `copilot` | `manifest.json` の `agentConnectors` でMCPサーバーを宣言するため二重定義になる |
+
+`copilot` 向けにMCPサーバーを追加する場合は、`src/.mcp.json` ではなく `src/.copilot-bundle/manifest.json` の `agentConnectors` に定義してください。
 
 ## セットアップ
 
@@ -74,7 +156,7 @@ pip install python-docx
 
 ### review-contract
 
-`skills/review-contract/references/playbook.md` を編集することで、以下の項目を自社の基準に合わせて設定できます。
+`src/skills/review-contract/references/playbook.md` を編集することで、以下の項目を自社の基準に合わせて設定できます。
 
 - 各条項の自社基準（許容範囲の数値・条件）
 - 許容できない条件（RED判定の基準）
@@ -85,7 +167,7 @@ pip install python-docx
 
 ### draft-contract
 
-`skills/draft-contract/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
+`src/skills/draft-contract/references/` 配下を編集することで、以下を自社の運用に合わせて設定できます。
 
 - 入力ソースの取得フローと利用コネクタ、対象契約のベクトル検索、雛形の保管場所（Google Drive / Salesforce / CLM 等）（`input-sources.md`）
 - 生成アプローチの許容範囲・ガードレール・類型別の構成ヒント（`generation-rules.md`）
@@ -101,11 +183,46 @@ pip install python-docx
 
 ## Claudeプラグインのパッケージ
 
-カスタマイズしたスキルをzipファイルとしてプラグインをパッケージするには、プロジェクトルートで以下のコマンドを実行します。
+カスタマイズしたスキルをzipファイルとしてパッケージするには、プロジェクトルートで以下のコマンドを実行します。ビルドにはJinja2が必要です。
 
 ```sh
-zip -r legal-plugin.zip .claude-plugin skills .mcp.json
+pip install Jinja2
+python scripts/build.py claude
+cd dist/claude && zip -r ../../claude-skill-bundle.zip .
 ```
+
+`zip` の対象は `./*` ではなく `.` を指定してください。`./*` はドットファイルにマッチしないため、`.claude-plugin/plugin.json` と `.mcp.json` が取りこぼされ、マニフェストのない不正なパッケージになります。
+
+### 配布ZIPの構成要件
+
+インストーラは **アーカイブ直下** のマニフェストを見てプラグインかどうかを判定します。次のエラーはこの構成が崩れている場合に出ます。
+
+```
+Plugin archive must contain .codex-plugin/plugin.json, .agent-plugin/plugin.json,
+.claude-plugin/plugin.json, or plugin content such as skills/*/SKILL.md, .mcp.json, or .app.json
+```
+
+よくある原因は次の2つです。
+
+1. **二重ZIP** — GitHub Actionsのアーティファクトはそれ自体がZIPです。ビルド済みZIPをアーティファクトにすると、ダウンロード時に「ZIPの中にZIP」になり拒否されます。CIではバンドルの中身をアーティファクトにしているため、ダウンロードしたZIPをそのままアップロードできます
+2. **余計なトップレベルディレクトリ** — 親ディレクトリからZIPを作ると `my-plugin/` のような階層で包まれ、マニフェストが直下に来ません
+
+構成は次のコマンドで検証できます（二重ZIP・余計な階層・必須ファイルの欠落を検出）。
+
+```sh
+python scripts/build.py claude --verify-archive claude-skill-bundle.zip
+```
+
+CIのリリースジョブでもZIP作成後に同じ検証を実行します。
+
+### CIのビルド成果物
+
+`package-plugin.yml` は2種類の入手経路を用意しています。どちらもアーカイブ直下がプラグインルートになっており、そのままインストーラにアップロードできます。
+
+| 入手経路 | 内容 |
+| --- | --- |
+| Actionsのアーティファクト（`<platform>-skill-bundle`） | ダウンロードすると `<platform>-skill-bundle.zip` が得られ、その直下がバンドル |
+| Releasesのアセット（`<platform>-skill-bundle.zip`） | `main` へのpush時に、`CHANGELOG.md` の最新バージョンをタグとして作成 |
 
 ## Claudeプラグインの配布
 

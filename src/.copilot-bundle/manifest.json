@@ -1,0 +1,49 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json",
+  "manifestVersion": "devPreview",
+  "version": "",
+  "id": "a127f8a3-3162-ad36-3783-7fefc647b696",
+  "packageName": "com.contracts-cloud.agent-tools",
+  "developer": {
+    "name": "ContractS Inc.",
+    "websiteUrl": "https://www.contracts.co.jp",
+    "privacyUrl": "https://www.contracts.co.jp/privacy/",
+    "termsOfUseUrl": "https://www.contracts.co.jp/terms/"
+  },
+  "name": {
+    "short": "ContractS CLM",
+    "full": "ContractS CLM Plugin for Copilot Cowork"
+  },
+  "description": {
+    "short": "Manage contract and legal process.",
+    "full": "It integrates with ContractS CLM’s contract intelligence to provide comprehensive support for the contract process."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#2B579A",
+  "agentSkills": [
+    { "folder": "./skills/draft-contract" },
+    { "folder": "./skills/review-contract" }
+  ],
+  "validDomains": [
+    "*.contracts-cloud.com"
+  ],
+  "agentConnectors": [
+    {
+      "id": "contracts-clm",
+      "displayName": "ContractS CLM",
+      "description": "",
+      "toolSource": {
+        "remoteMcpServer": {
+          "mcpServerUrl": "https://mcp.contracts-cloud.com/mcp",
+          "authorization": {
+            "type": "OAuthPluginVault",
+            "referenceId": "{OAuthクライアント登録ID}"
+          }
+        }
+      }
+    }
+  ]
+}

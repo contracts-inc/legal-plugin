@@ -1,0 +1,19 @@
+{
+  "manifest_version": "2.0",
+  "name": "contracts-clm-legal",
+  "version": "",
+  "description": "It streamlines the workflow for contract review and compliance tasks within in-house legal teams. It also helps organizations build contract intelligence and supports the drafting, renewal, and fulfillment of contractual obligations.",
+  "author": {
+    "name": "ContractS Inc."
+  },
+  "interface": {
+    "displayName": "ContractS CLM",
+    "shortDescription": "Manage contract and legal process.",
+    "longDescription": "It integrates with ContractS CLM’s contract intelligence to provide comprehensive support for the contract process.",
+    "developerName": "ContractS Inc.",
+    "category": "productivity",
+    "capabilities": []
+  },
+  "skills": "skills",
+  "mcpServers":  ".mcp.json"
+}
