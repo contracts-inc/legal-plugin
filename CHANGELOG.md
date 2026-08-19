@@ -4,7 +4,7 @@
 
 ### Changed
 
-- `review-contract` スキルの「参照契約書の取得」を「関連契約・参照契約書の取得」に改題し、取得手順を拡張。非推奨の`search_references`を`search_documents`に差し替え、新たに手順4として`get_related_contracts`による関連契約ツリー展開（基本契約→個別契約→変更契約書＝変更履歴）を追加。本文で明示的に参照されていない兄弟契約や過去の変更覚書も漏れなく把握し、レビューのインプットとする。`get_related_contracts`が関連契約を返さない場合は親子関係未登録の可能性がある旨をレビュー所見に含める注意事項を追記。
+- `review-contract` スキルの「参照契約書の取得」を「関連契約・参照契約書の取得」に改題し、取得手順を拡張。非推奨の`search_references`を`search_documents`に差し替え、新たに手順4として`get_related_contracts`による関連契約ツリー展開（基本契約→個別契約→変更契約書＝変更履歴）を追加。渡す契約IDは手順3で選択した参照契約書のもの（`search_documents`のレスポンスに含まれる contractId）に限定し、レビュー対象自身の契約IDは不要である旨を明記（未締結のレビュー対象は契約IDを取得できず、方法Bで判明するのは documentId のため）。本文で明示的に参照されていない兄弟契約や過去の変更覚書も漏れなく把握し、レビューのインプットとする。`get_related_contracts`が関連契約を返さない場合は親子関係未登録の可能性がある旨をレビュー所見に含める注意事項を追記。
 - `draft-contract` スキルの入力ソース取得（モードA・原契約検索）で使用する非推奨の`search_references`を`search_documents`に差し替え（`SKILL.md`および`references/input-sources.md`）。
 - `draft-contract` スキルの後続フロー・カスタマイズ例（ContractS CLM 利用時）における原契約への紐付けツールを、非推奨の`relate_contracts`から`set_parent_contract`に差し替え。文言を「原契約（親）に子として紐付ける」に調整。
 ### Fixed
