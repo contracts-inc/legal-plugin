@@ -24,6 +24,7 @@
   },
   "accentColor": "#2B579A",
   "agentSkills": [
+    { "folder": "./skills/build-playbook" },
     { "folder": "./skills/draft-contract" },
     { "folder": "./skills/review-contract" }
   ],
