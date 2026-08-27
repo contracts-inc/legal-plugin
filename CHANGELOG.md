@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.4] - 2026/08/27
+
+### Changed
+
+- `review-contract` スキルの「関連コメントの取得」で使用するコメント取得ツールを、非推奨の`list_task_comment`から`list_comment`に差し替え（`SKILL.md`）。`list_comment`は対象リソースの指定（`resource_type` / `resource_id`）が任意で、指定しなければタスクと契約書を横断して取得する仕様のため、**ツール名だけを差し替えると意図せず横断取得になる**。レビュータスクのコメントを取得する箇所では`resource_type="TASK"`と`resource_id`（対象タスクのID）の指定を明記した。コメント添付ファイルIDの取得元を示す注記も同様に差し替え。あわせて「ContractS CLM」MCPでは`list_task_comment`／`list_document_comment`が非推奨となり`list_comment`に統合された（旧ツールの動作は維持される）。コメント一覧の応答には条件に合致する総件数（`total_count`）が含まれるようになったが、本スキルでは未使用。
+
 ## [1.1.3] - 2026/08/13
 
 ### Changed
