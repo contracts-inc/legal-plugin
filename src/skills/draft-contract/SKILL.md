@@ -46,7 +46,7 @@ description: 原契約や雛形を参照して、変更覚書をはじめとす�
 | **② ファイル添付** | ユーザーがローカルの原契約／雛形ファイル（.docx / PDF 等）を添付する。 |
 | **③ 直接入力（無し）** | コネクタも添付も無い場合。原契約／雛形の本文そのものを直接入力（貼り付け）する。 |
 
-- **モードA（原契約の参照）:** ①/②/③ から選択させる。コネクタ接続時、対象契約が特定しづらい場合は「ContractS CLM」MCP の `search_documents` で候補を検索し、ユーザー選択後に `download_document` で取り込む（詳細は `references/input-sources.md`）。
+- **モードA（原契約の参照）:** ①/②/③ から選択させる。コネクタ接続時、対象契約が特定しづらい場合は「ContractS CLM」MCP の `search_documents` で候補を検索し、ユーザー選択後にその候補の `documentId` を `download_document` に渡して取り込む（詳細は `references/input-sources.md`）。
 - **モードB（雛形の取得）:**
   - **「雛形あり」** の場合 → ①/②/③ から選択させる。
   - **「雛形なし」** の場合 → 標準構成に沿った条文生成（B-2）で対応する（生成範囲は `references/generation-rules.md` に従う）。
@@ -149,7 +149,7 @@ CLM / 契約管理系コネクタが接続されている場合、生成した�
 >
 > **登録まで（ドラフト時点で実行可）:** `list_folder` で保存先フォルダの候補を提示しユーザーに選択させる（`folderId` を確定。`keyword` での絞り込みや上位フォルダからの絞り込みも可）→ `get_upload_url` でアップロード → `create_document_from_uploaded_file`（選択した `folderId` を指定）で登録。**ここで一旦完了とし、親子紐付けは提案しない。**
 >
-> **締結完了後の紐付け:** `search_documents` に生成した本文テキストを `text` で渡して自身の `contractId` を取得 → `set_parent_contract`（パスに子の `contractId`、ボディに親の `parentContractId`）で原契約に紐付ける。`search_documents` のレスポンスには文書IDが含まれないため、契約書名とスコアで自身を同定する（同一テキストなので最上位にヒットする）。
+> **締結完了後の紐付け:** `search_documents` に生成した本文テキストを `text` で渡し、登録時に得た文書ID（`create_document_from_uploaded_file` のレスポンスの `documentId`）と一致する `documentId` を持つ候補を探して自身を同定する → その候補の `contractId` を使って `set_parent_contract`（パスに子の `contractId`、ボディに親の `parentContractId`）で原契約に紐付ける。
 >
 > **制約:** `search_documents` の検索対象は `ORIGINAL`（原契約書）カテゴリの締結済み契約のみ。**変更覚書は `MEMORANDUM` と判定され検索に出てこないため、締結後であっても自身の契約IDを取得できない。** 覚書類の紐付けは CLM の画面操作を案内する。この方法で紐付けできるのは、個別契約書など `ORIGINAL` と判定される文書に限られる。
 

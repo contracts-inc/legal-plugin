@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.4] - 2026/08/28
+
+### Changed
+
+- `search_documents`（ContractS CLM MCP）のレスポンスに、検索でヒットした契約書の `documentId` が追加されたことへの追随。
+- `draft-contract` スキルの後続フロー「締結完了後の紐付け」を documentId ベースの同定に変更（`SKILL.md` ステップ10 カスタマイズ例）。従来は「`search_documents` のレスポンスに文書IDが含まれないため、契約書名とスコアで自身を同定する」としていたが、レスポンスに `documentId` が含まれるようになったため、登録時に得た文書ID（`create_document_from_uploaded_file` のレスポンスの `documentId`）と一致する候補を同定し、その `contractId` で `set_parent_contract` する手順に修正。あわせてモードA（`SKILL.md`）と `references/input-sources.md` の取り込み導線を、選択した候補の `documentId` を `download_document` に渡す形に明記。
+- `review-contract` スキルの「関連契約・参照契約書の取得」で、`search_documents` のレスポンスに `contractId` と `documentId` の両方が含まれる旨に更新。手順3で選択した参照契約書自身を `documentId` で直接 `download_document` できる導線を手順5に追加（`get_related_contracts` は兄弟契約・変更履歴を辿る用途として `contractId` で継続使用）。
+
 ## [1.1.3] - 2026/08/13
 
 ### Changed
