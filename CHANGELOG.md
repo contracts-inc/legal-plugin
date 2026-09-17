@@ -1,10 +1,18 @@
 # Changelog
 
-## [1.1.4] - 2026/08/27
+## [1.1.5] - 2026/09/17
 
 ### Changed
 
 - `review-contract` スキルの「関連コメントの取得」で使用するコメント取得ツールを、非推奨の`list_task_comment`から`list_comment`に差し替え（`SKILL.md`）。`list_comment`は対象リソースの指定（`resource_type` / `resource_id`）が任意で、指定しなければタスクと契約書を横断して取得する仕様のため、**ツール名だけを差し替えると意図せず横断取得になる**。レビュータスクのコメントを取得する箇所では`resource_type="TASK"`と`resource_id`（対象タスクのID）の指定を明記した。コメント添付ファイルIDの取得元を示す注記も同様に差し替え。あわせて「ContractS CLM」MCPでは`list_task_comment`／`list_document_comment`が非推奨となり`list_comment`に統合された（旧ツールの動作は維持される）。コメント一覧の応答には条件に合致する総件数（`total_count`）が含まれるようになったが、本スキルでは未使用。
+
+## [1.1.4] - 2026/08/28
+
+### Changed
+
+- `search_documents`（ContractS CLM MCP）のレスポンスに、検索でヒットした契約書の `documentId` が追加されたことへの追随。
+- `draft-contract` スキルの後続フロー「締結完了後の紐付け」を documentId ベースの同定に変更（`SKILL.md` ステップ10 カスタマイズ例）。従来は「`search_documents` のレスポンスに文書IDが含まれないため、契約書名とスコアで自身を同定する」としていたが、レスポンスに `documentId` が含まれるようになったため、登録時に得た文書ID（`create_document_from_uploaded_file` のレスポンスの `documentId`）と一致する候補を同定し、その `contractId` で `set_parent_contract` する手順に修正。あわせてモードA（`SKILL.md`）と `references/input-sources.md` の取り込み導線を、選択した候補の `documentId` を `download_document` に渡す形に明記。
+- `review-contract` スキルの「関連契約・参照契約書の取得」で、`search_documents` のレスポンスに `contractId` と `documentId` の両方が含まれる旨に更新。手順3で選択した参照契約書自身を `documentId` で直接 `download_document` できる導線を手順5に追加（`get_related_contracts` は兄弟契約・変更履歴を辿る用途として `contractId` で継続使用）。
 
 ## [1.1.3] - 2026/08/13
 
