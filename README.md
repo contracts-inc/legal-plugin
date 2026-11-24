@@ -1,6 +1,6 @@
 # ContractS CLM MCP Legal Plugin
 
-ContractS CLMと連動して自社基準と法令に基づく契約書レビューを実施し、あわせて法務文書のドラフト生成を支援するClaude Codeプラグインです。
+ContractS CLMと連動して自社基準と法令に基づく契約書レビューや契約書ドラフト生成を支援するプラグインです。
 
 ## 概要
 
@@ -41,8 +41,11 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 ├── src/                                 # 配布物のソース（ここを編集する）
 │   ├── .claude-bundle/              # claudeビルド専用
 │   │   └── plugin.json              # プラグインメタデータ
-│   ├── .chatgpt-bundle/             # chatgptビルド専用
-│   │   └── plugin.json              # プラグインメタデータ
+│   ├── .chatgpt-bundle/             # chatgptビルド専用（中身をパッケージルートへ展開）
+│   │   ├── .codex-plugin/
+│   │   │   └── plugin.json          # Codex互換プラグインマニフェスト
+│   │   └── assets/
+│   │       └── logo.png             # アイコン（logo / composerIcon）
 │   ├── .copilot-bundle/             # copilotビルド専用（中身をパッケージルートへ展開）
 │   │   ├── manifest.json            # Teamsアプリマニフェスト
 │   │   ├── color.png                # アイコン（カラー）
@@ -94,7 +97,7 @@ ContractS CLMと連動して自社基準と法令に基づく契約書レビュ�
 | ソース | 対象 | バンドル内の配置先 |
 | --- | --- | --- |
 | `src/.claude-bundle/` | `claude` | `.claude-plugin/` |
-| `src/.chatgpt-bundle/` | `chatgpt` | `.codex-plugin/` |
+| `src/.chatgpt-bundle/` | `chatgpt` | パッケージルート直下（ディレクトリ名を除去） |
 | `src/.copilot-bundle/` | `copilot` | パッケージルート直下（ディレクトリ名を除去） |
 
 `copilot` で中身をルートに展開するのは、Teamsアプリマニフェストが `icons` や `agentSkills` をパッケージルート基準の相対パス（`color.png` / `./skills/review-contract`）で参照するためです。生成後のバンドルは次の構成になります。
@@ -109,7 +112,19 @@ dist/copilot/
     └── draft-contract/
 ```
 
-ルート直下へ展開するため、`.copilot-bundle/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
+`chatgpt` も同様に中身をルートに展開します。Codex互換マニフェスト（`.codex-plugin/plugin.json`）は `skills` / `mcpServers` / `interface.logo` / `interface.composerIcon` をプラグインルート基準の `./` 始まりの相対パスで参照し、参照先もルート配下に置く必要があるためです（[OpenAI: プラグインのパッケージ化](https://developers.openai.com/ja-JP/plugins/build/plugins)）。生成後のバンドルは次の構成になります。
+```
+dist/chatgpt/
+├── .codex-plugin/
+│   └── plugin.json
+├── .mcp.json
+├── assets/
+│   └── logo.png
+└── skills/
+    ├── review-contract/
+    └── draft-contract/
+```
+ルート直下へ展開するため、`.copilot-bundle/` / `.chatgpt-bundle/` 内のファイル名が `src/` 直下のファイル名と衝突する場合はビルドが失敗します。
 
 ### バージョン管理
 
@@ -118,7 +133,7 @@ dist/copilot/
 | 埋め込み先（ソース） | 対象 |
 | --- | --- |
 | `src/.claude-bundle/plugin.json` | `claude` |
-| `src/.chatgpt-bundle/plugin.json` | `chatgpt` |
+| `src/.chatgpt-bundle/.codex-plugin/plugin.json` | `chatgpt` |
 | `src/.copilot-bundle/manifest.json` | `copilot` |
 
 そのため、リリース時に編集するのは `CHANGELOG.md` だけです。`src/` 側マニフェストの `version` はビルド時に必ず上書きされるプレースホルダで、値を更新する必要はありません（更新しても無視されます）。
@@ -138,6 +153,7 @@ python scripts/build.py --print-version
 | ソース | 除外対象 | 理由 |
 | --- | --- | --- |
 | `src/.mcp.json` | `copilot` | `manifest.json` の `agentConnectors` でMCPサーバーを宣言するため二重定義になる |
+
 
 `copilot` 向けにMCPサーバーを追加する場合は、`src/.mcp.json` ではなく `src/.copilot-bundle/manifest.json` の `agentConnectors` に定義してください。
 
@@ -182,13 +198,15 @@ pip install python-docx
 - 本プラグインはユーザーが投入する契約・雛形（機微情報）を、当該タスクの処理に限定して扱い、外部への保存・共有は行いません。
 - 生成物はドラフト（草案）です。弁護士法に基づく法的な鑑定や助言（リーガルアドバイス）を提供するものではなく、確定前に必ず有資格の法務専門家によるレビューを受けてください。
 
-## Claudeプラグインのパッケージ
+## プラグインのパッケージ
 
 カスタマイズしたスキルをzipファイルとしてパッケージするには、プロジェクトルートで以下のコマンドを実行します。ビルドにはJinja2が必要です。
 
+### 例: Claudeプラグインの場合
+
 ```sh
 pip install Jinja2
-python scripts/build.py claude
+python3 scripts/build.py claude
 cd dist/claude && zip -r ../../claude-skill-bundle.zip .
 ```
 
@@ -224,9 +242,3 @@ CIのリリースジョブでもZIP作成後に同じ検証を実行します。
 | --- | --- |
 | Actionsのアーティファクト（`<platform>-skill-bundle`） | ダウンロードすると `<platform>-skill-bundle.zip` が得られ、その直下がバンドル |
 | Releasesのアセット（`<platform>-skill-bundle.zip`） | `main` へのpush時に、`CHANGELOG.md` の最新バージョンをタグとして作成 |
-
-## Claudeプラグインの配布
-
-カスタマイズしたzipパッケージか、[Releases](https://github.com/contracts-inc/legal-plugin/releases)で配布するZipファイルを使用して組織にプラグインを配布します。
-
-Claude公式の[組織向けのclaude-coworkプラグインを管理する](https://support.claude.com/ja/articles/13837433-%E7%B5%84%E7%B9%94%E5%90%91%E3%81%91%E3%81%AEclaude-cowork%E3%83%97%E3%83%A9%E3%82%B0%E3%82%A4%E3%83%B3%E3%82%92%E7%AE%A1%E7%90%86%E3%81%99%E3%82%8B)サポートページを参考に `legal-plugin.zip` を組織に配布してください。

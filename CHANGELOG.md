@@ -1,4 +1,9 @@
 # Changelog
+## [1.1.6] - 2026/11/24
+### Changed
+- ChatGPT用バンドル（`chatgpt`）のマニフェストを、OpenAIのCodex互換形式（`.codex-plugin/plugin.json`）の要件に合わせて修正（[プラグインのパッケージ化](https://developers.openai.com/ja-JP/plugins/build/plugins)）。仕様にない`manifest_version`を削除し、`skills`／`mcpServers`のパスを`./`始まり（`"./skills/"`／`"./.mcp.json"`）に修正。`interface.category`を`Productivity`に、上限30文字を超えていた`interface.shortDescription`を`Contract review and drafting`に変更。Codex形式で必須の`interface.logo`／`interface.composerIcon`を追加し、`author.url`・`homepage`・`keywords`・`interface.websiteURL`・`interface.privacyPolicyURL`・`interface.termsOfServiceURL`・`interface.brandColor`を追加。
+- アイコンを参照可能にするため、`src/.chatgpt-bundle/`の配置を変更。中身をパッケージルート直下へ展開する方式（copilotと同じ）とし、マニフェストを`src/.chatgpt-bundle/.codex-plugin/plugin.json`へ移動、アイコン`src/.chatgpt-bundle/assets/logo.png`を追加（Copilot用`color.png`と同じ画像）。
+- `scripts/build.py`のchatgpt向け必須ファイルに`.mcp.json`と`assets/logo.png`を追加し、MCP設定やアイコンが欠けたバンドルをビルド時に検出するよう変更。バージョン埋め込み対象のパスを新しい配置に合わせて更新。
 
 ## [1.1.5] - 2026/09/17
 

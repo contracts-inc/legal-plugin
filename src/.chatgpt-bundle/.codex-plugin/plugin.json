@@ -1,19 +1,27 @@
 {
-  "manifest_version": "2.0",
   "name": "contracts-clm-legal",
   "version": "",
   "description": "It streamlines the workflow for contract review and compliance tasks within in-house legal teams. It also helps organizations build contract intelligence and supports the drafting, renewal, and fulfillment of contractual obligations.",
   "author": {
-    "name": "ContractS Inc."
+    "name": "ContractS Inc.",
+    "url": "https://www.contracts.co.jp"
   },
+  "homepage": "https://www.contracts.co.jp",
+  "keywords": ["contract", "legal", "clm", "contract-review", "drafting"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "ContractS CLM",
-    "shortDescription": "Manage contract and legal process.",
+    "shortDescription": "Contract review and drafting",
     "longDescription": "It integrates with ContractS CLM’s contract intelligence to provide comprehensive support for the contract process.",
     "developerName": "ContractS Inc.",
-    "category": "productivity",
-    "capabilities": []
-  },
-  "skills": "skills",
-  "mcpServers":  ".mcp.json"
+    "category": "Productivity",
+    "capabilities": [],
+    "websiteURL": "https://www.contracts.co.jp",
+    "privacyPolicyURL": "https://www.contracts.co.jp/privacy/",
+    "termsOfServiceURL": "https://www.contracts.co.jp/terms/",
+    "brandColor": "#2B579A",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
 }

@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "e-gov": {
+    "e-Gov法令検索": {
       "type": "http",
       "url": "https://e-gov.contracts-cloud.com/mcp"
     },
-    "contracts-clm": {
+    "ContractS CLM": {
       "type": "http",
       "url": "https://mcp.contracts-cloud.com/mcp"
     }

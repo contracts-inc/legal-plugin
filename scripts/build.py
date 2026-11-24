@@ -13,7 +13,8 @@ Markdown は Jinja2 テンプレートとして `platform` 変数を渡してレ
 プラットフォーム専用のマニフェストは PLATFORM_DIRS で制御する。
   - src/.claude-bundle/  -> claude ビルドの .claude-plugin/ 配下
   - src/.copilot-bundle/ -> copilot ビルドのパッケージルート直下
-  - src/.chatgpt-bundle/ -> chatgpt ビルドの .codex-plugin/ 配下
+  - src/.chatgpt-bundle/ -> chatgpt ビルドのパッケージルート直下
+                            （.codex-plugin/plugin.json と assets/ を含む）
 
 マニフェストの version は CHANGELOG.md の最新エントリを唯一の情報源として
 ビルド時に埋め込む（VERSION_STAMPED_FILES）。src 側の値は参照しない。
@@ -56,11 +57,13 @@ EXCLUDED_NAMES = {".DS_Store", "Thumbs.db", "__pycache__", ".pytest_cache"}
 #   - .copilot-bundle: Copilot (Teams アプリ) のマニフェストは
 #                      アイコンや agentSkills をパッケージルート基準の相対パスで参照するため、
 #                      中身をパッケージルート直下に展開する（dest = ""）。
-#   - .chatgpt-bundle: ChatGPT はマニフェストを .codex-plugin/ 配下に置く
+#   - .chatgpt-bundle: ChatGPT / Codex の互換マニフェスト（.codex-plugin/plugin.json）は
+#                      アイコン等をプラグインルート基準の相対パス（./assets/...）で参照し、
+#                      参照先もルート直下に置く必要があるため、中身をルート直下に展開する。
 PLATFORM_DIRS = {
     ".claude-bundle": {"platform": "claude", "dest": ".claude-plugin"},
     ".copilot-bundle": {"platform": "copilot", "dest": ""},
-    ".chatgpt-bundle": {"platform": "chatgpt", "dest": ".codex-plugin"},
+    ".chatgpt-bundle": {"platform": "chatgpt", "dest": ""},
 }
 
 # version を CHANGELOG.md の最新バージョンで上書きする JSON（src からの相対パス）。
@@ -69,7 +72,7 @@ PLATFORM_DIRS = {
 VERSION_STAMPED_FILES = frozenset(
     {
         ".claude-bundle/plugin.json",
-        ".chatgpt-bundle/plugin.json",
+        ".chatgpt-bundle/.codex-plugin/plugin.json",
         ".copilot-bundle/manifest.json",
     }
 )
@@ -93,7 +96,8 @@ PLATFORM_EXCLUDED_FILES = {
 REQUIRED_FILES = {
     "claude": (".claude-plugin/plugin.json",),
     "copilot": ("manifest.json", "color.png", "outline.png"),
-    "chatgpt": (".codex-plugin/plugin.json",),
+    # Codex 形式のマニフェストは interface.logo / composerIcon を必須とする
+    "chatgpt": (".codex-plugin/plugin.json", ".mcp.json", "assets/logo.png"),
 }
 
 
